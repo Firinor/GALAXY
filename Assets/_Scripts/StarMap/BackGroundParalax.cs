@@ -1,5 +1,3 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class BackGroundParalax : MonoBehaviour
@@ -7,47 +5,23 @@ public class BackGroundParalax : MonoBehaviour
     public float paralaxSpeed;
 
     public Transform[] backgrounds;
-    Transform cam;
-    float camOldPositionX;
-    float posDelta;
+    private Transform cam;
+    private float camOldPositionX, camOldPositionY;
+    private float posDeltaX, posDeltaY;
 
-    float distanceToSlideBackground;
-
-    void Start()
+    private void Start()
     {
         cam = Camera.main.transform;
         camOldPositionX = cam.position.x;
-        distanceToSlideBackground = (backgrounds[1].position.x - backgrounds[0].position.x) * backgrounds.Length;
-
-
+        camOldPositionY = cam.position.y;
     }
 
-    void Update()
+    public void MoveBackgroundParallaxically()
     {
-        MoveBackgroundParallaxically();
-        CheckBorders();
-    }
-
-    void MoveBackgroundParallaxically()
-    {
-        posDelta = cam.position.x - camOldPositionX;
-        transform.Translate(posDelta * paralaxSpeed, 0, 0);
+        posDeltaX = cam.position.x - camOldPositionX;
+        posDeltaY = cam.position.y - camOldPositionY;
+        transform.Translate(posDeltaX * paralaxSpeed, posDeltaY * paralaxSpeed, 0);
         camOldPositionX = cam.position.x;
-    }
-
-    void CheckBorders()
-    {
-        for (int q = 0; q < backgrounds.Length; q++)
-        {
-            float diff = backgrounds[q].position.x - cam.position.x;
-            if (diff > 0)
-            {
-                if (2 * diff > distanceToSlideBackground) backgrounds[q].Translate(-distanceToSlideBackground, 0f, 0f);
-            }
-            else
-            {
-                if (2 * diff < -distanceToSlideBackground) backgrounds[q].Translate(distanceToSlideBackground, 0f, 0f);
-            }
-        }
+        camOldPositionY = cam.position.y;
     }
 }

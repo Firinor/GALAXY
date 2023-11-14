@@ -7,10 +7,11 @@ public class CameraController : MonoBehaviour, IDragHandler, IScrollHandler
 {
     [Inject]
     private Camera cam;
+    [Inject]
+    private StarLayers layers;
     private static CameraSetting cameraSetting;
     public static CameraSetting Setting => cameraSetting;
     private bool isLoadComplete = false;
-    private static float zPosition => -10;
     private static float imageCoefficient => 100;
 
     [Inject]
@@ -20,56 +21,50 @@ public class CameraController : MonoBehaviour, IDragHandler, IScrollHandler
         isLoadComplete = true;
     }
 
-    internal void SetScale(float scale)
-    {
-        if (!isLoadComplete)
-            return;
-
-        cam.orthographicSize = Mathf.Clamp(scale, cameraSetting.MinZoom, cameraSetting.MaxZoom);
-    }
-
-    internal void SetPosition(Vector2 anchoredPosition)
-    {
-        if (!isLoadComplete)
-            return;
-
-        cam.transform.position = new Vector3(anchoredPosition.x, anchoredPosition.y, zPosition);
-    }
-
     public void OnScroll(PointerEventData data)
     {
-        //pointBeforeScaling
-        //RectTransformUtility.ScreenPointToLocalPointInRectangle(starMapSettings.RectTransform,
-        //        Input.mousePosition, data.pressEventCamera, out Vector2 pointBeforeScaling);
+        if (!isLoadComplete)
+            return;
 
-        //Scaling
-        float scale = ZoomScroll(Input.mouseScrollDelta);
+        cam.orthographicSize *= 1 + Setting.ZoomStep * (data.scrollDelta.y > 0 ? -1 : 1);
+        cam.orthographicSize = Mathf.Clamp(cam.orthographicSize, Setting.MinZoom, Setting.MaxZoom);
 
-        //pointAfterScaling
-        //RectTransformUtility.ScreenPointToLocalPointInRectangle(starMapSettings.RectTransform,
-        //        Input.mousePosition, data.pressEventCamera, out Vector2 pointAfterScaling);
-
-        //Vector2 delta = pointBeforeScaling - pointAfterScaling;
-
-        //We shift the map to the mouse cursor
-        //content.anchoredPosition -= delta;
-        //cameraController.SetPosition(content.anchoredPosition);
+        CheckCameraPosition(cam.transform.position);
+        layers.CheckStarMapLayer(cam.orthographicSize);
     }
+
     public void OnDrag(PointerEventData data)
     {
+        if (!isLoadComplete)
+            return;
+
         if (data.button != PointerEventData.InputButton.Left)
             return;
 
-        cam.transform.position += new Vector3(
+        Vector3 newCameraPosition = cam.transform.position + new Vector3(
             -data.delta.x/imageCoefficient,
             -data.delta.y/imageCoefficient,
-            0);        
+            0);
+
+        CheckCameraPosition(newCameraPosition);
+        
     }
 
-    private float ZoomScroll(Vector2 mouseScrollDelta)
+    private void CheckCameraPosition(Vector3 newCameraPosition)
     {
-        cam.orthographicSize += Setting.ZoomStep * (mouseScrollDelta.y > 0 ? -1 : 1);
-        cam.orthographicSize = Mathf.Clamp(cam.orthographicSize, Setting.MinZoom, Setting.MaxZoom);
-        return cam.orthographicSize;
+        float cameraZoom = cam.orthographicSize;
+
+        if (newCameraPosition.x + cameraZoom > Setting.GalaxyEdge)
+            newCameraPosition = new Vector3(Setting.GalaxyEdge - cameraZoom, newCameraPosition.y, newCameraPosition.z);
+        if (newCameraPosition.x - cameraZoom < -Setting.GalaxyEdge)
+            newCameraPosition = new Vector3(-Setting.GalaxyEdge + cameraZoom, newCameraPosition.y, newCameraPosition.z);
+        if (newCameraPosition.y + cameraZoom > Setting.GalaxyEdge)
+            newCameraPosition = new Vector3(newCameraPosition.x, Setting.GalaxyEdge - cameraZoom, newCameraPosition.z);
+        if (newCameraPosition.y - cameraZoom < -Setting.GalaxyEdge)
+            newCameraPosition = new Vector3(newCameraPosition.x, -Setting.GalaxyEdge + cameraZoom, newCameraPosition.z);
+
+        cam.transform.position = newCameraPosition;
+
+        layers.MoveStarsParallaxically();
     }
 }

@@ -11,9 +11,10 @@ public class ServerEmulator
 
         return new CameraSetting
         {
-            MinZoom = .1f,
-            ZoomStep = 0.15f,
+            MinZoom = .01f,
+            ZoomStep = 0.05f,
             MaxZoom = 4.5f,
+            GalaxyEdge = 4.5f,
         };
     }
 }
